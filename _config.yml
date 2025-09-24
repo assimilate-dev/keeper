@@ -1,0 +1,11 @@
+
+title: Combat Speed Agent
+description: A lightweight LLM-driven combat tracker & rules assistant for tabletop sessions
+theme: minima
+markdown: kramdown
+kramdown:
+  input: GFM
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+# Optional: if you add a CNAME later, put it at the repo root.
