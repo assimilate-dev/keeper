@@ -1,17 +1,69 @@
+# Keeper - D&D Combat Assistant
 
-# Combat Speed Agent (GitHub Pages)
+A system-agnostic tabletop RPG assistant focused on streamlining combat while preserving the tactile experience of rolling physical dice.
 
-This repo hosts the public roadmap and docs for your **Combat Speed Agent** — an LLM-powered assistant that runs initiative, effects, damage/healing, consumables, and the campaign clock.
+## Features
 
-**Publish on GitHub Pages**
-1. Create a new public repo named `combat-speed-agent` (or any name).
-2. Upload these files (or drag-drop the ZIP contents).
-3. In **Settings → Pages**, set **Source: `Deploy from a branch`**, then pick `main` and `/ (root)`.
-4. Wait ~1 minute; your site will appear at `https://<your-username>.github.io/<repo-name>/`.
+- **Initiative Tracking** - Automated turn order with support for PCs, enemies, and lair actions
+- **Combat Management** - Round tracking, turn advancement, and combat state
+- **Character Management** - HP, AC, conditions, and basic status tracking  
+- **Damage/Healing** - Simple damage application and healing with bounds checking
+- **Type-Aware Display** - Visual distinction between player characters, enemies, and lair actions
 
-Quick links:
-- **Roadmap:** see the homepage
-- **Architecture:** `/docs/architecture.html`
-- **Data Model:** `/docs/data-model.html`
-- **Tool Schemas:** `/docs/tools-schema.html`
-- **Deployment:** `/docs/deployment.html`
+## Quick Start
+
+```javascript
+// Create characters
+const player = new Character({name: "Gandalf", type: "pc", hp: 38, ac: 15});
+const enemy = new Character({name: "Balrog", type: "enemy", hp: 250, ac: 19});
+const lair = new Character({name: "Lair Actions", type: "lair"});
+
+// Create combat
+const combat = new Combat();
+
+// Add with initiative (rolled at table)
+combat.addCharacter(player, 15);  // Player rolled 12 + 3 dex
+combat.addCharacter(enemy, 8);    // Enemy rolled 8 + 0 dex  
+combat.addCharacter(lair, 20);    // Lair actions always on 20
+
+// Start combat
+combat.startCombat();
+
+// Apply damage
+enemy.takeDamage(45);
+
+// Track conditions
+player.addCondition("Blessed");
+
+// Advance turns
+combat.nextTurn();
+```
+
+## Project Structure
+
+```
+src/models/     - Core data models
+examples/       - Usage examples and demos
+docs/           - Documentation and architecture notes
+```
+
+## Design Philosophy
+
+**Physical Dice First** - Players roll their own dice; system handles the bookkeeping
+**System Agnostic** - Built to support D&D 5e now, other systems later
+**Start Small** - Minimal viable features that work, then expand
+**Preserve Agency** - Automate tedium, not decision-making
+
+## Development Status
+
+This is an active development project. Current focus is on core combat mechanics before expanding to spell tracking, resource management, and campaign-level features.
+
+## Running Examples
+
+```bash
+# In browser (open in browser)
+examples/basic-usage.js
+
+# In Node.js
+node examples/basic-usage.js
+```
