@@ -1,0 +1,17 @@
+{
+  "name": "keeper",
+  "version": "0.1.0",
+  "description": "System-agnostic D&D combat assistant",
+  "main": "src/models/core.js",
+  "scripts": {
+    "test": "node examples/basic-usage.js",
+    "test-db": "node examples/database-test.js",
+    "setup-db": "node -e \"require('./src/database/setup').setup().then(() => process.exit())\""
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.6"
+  },
+  "keywords": ["dnd", "combat", "rpg", "tabletop"],
+  "author": "Mike",
+  "license": "MIT"
+}

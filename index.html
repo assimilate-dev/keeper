@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keeper - Combat Assistant</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .combat-status {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .combat-status.active {
+            background: #1b5e20;
+        }
+        
+        /* Natural Language Input */
+        .command-section {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .command-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #444;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            margin-bottom: 10px;
+        }
+        
+        .command-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .command-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        .command-button:hover {
+            background: #45a049;
+        }
+        
+        .command-history {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-line;
+        }
+        
+        /* Character Cards */
+        .cards-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .character-card {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #4CAF50;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        
+        .character-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .character-card.enemy {
+            border-left-color: #F44336;
+        }
+        
+        .character-card.lair {
+            border-left-color: #FF9800;
+        }
+        
+        .character-card.current-turn {
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+            background: #1b4332;
+        }
+        
+        .character-card.current-turn.enemy {
+            box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+            background: #4a1e1e;
+        }
+        
+        .character-card.down {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .character-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .character-type {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .initiative-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .enemy .initiative-badge {
+            background: #F44336;
+        }
+        
+        .lair .initiative-badge {
+            background: #FF9800;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .hp-bar {
+            background: #444;
+            border-radius: 10px;
+            height: 8px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        
+        .hp-fill {
+            background: #4CAF50;
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .hp-fill.low {
+            background: #FF9800;
+        }
+        
+        .hp-fill.critical {
+            background: #F44336;
+        }
+        
+        .conditions {
+            margin-top: 10px;
+        }
+        
+        .condition-tag {
+            display: inline-block;
+            background: rgba(244, 67, 54, 0.2);
+            color: #F44336;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .consumables {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .consumable-item {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+        
+        /* Initiative Order */
+        .initiative-order {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .initiative-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .initiative-item {
+            background: #1a1a1a;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .initiative-item.enemy {
+            border-left-color: #F44336;
+        }
+        
+        .initiative-item.lair {
+            border-left-color: #FF9800;
+        }
+        
+        .initiative-item.current {
+            background: #4CAF50;
+            color: #000;
+        }
+        
+        .initiative-item.current.enemy {
+            background: #F44336;
+        }
+        
+        .initiative-item.current.lair {
+            background: #FF9800;
+        }
+        
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-btn {
+            background: #555;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .quick-btn:hover {
+            background: #666;
+        }
+        
+        .quick-btn.primary {
+            background: #4CAF50;
+        }
+        
+        .quick-btn.primary:hover {
+            background: #45a049;
+        }
+        
+        .quick-btn.danger {
+            background: #F44336;
+        }
+        
+        .quick-btn.danger:hover {
+            background: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚔️ Keeper Combat Assistant</h1>
+            <p>Natural language combat management for D&D</p>
+        </div>
+        
+        <div class="combat-status" id="combatStatus">
+            No combat active
+        </div>
+        
+        <div class="command-section">
+            <h3>Natural Language Commands</h3>
+            <input type="text" class="command-input" id="commandInput" 
+                   placeholder="Try: 'start combat with gandalf and 2 orcs' or 'gandalf takes 5 damage'">
+            <button class="command-button" onclick="processCommand()">Execute</button>
+            <button class="command-button" onclick="clearHistory()">Clear History</button>
+            
+            <div class="command-history" id="commandHistory"></div>
+        </div>
+        
+        <div class="cards-section" id="characterCards">
+            <!-- Character cards will be populated here -->
+        </div>
+        
+        <div class="initiative-order" id="initiativeOrder" style="display: none;">
+            <h3>Initiative Order</h3>
+            <div class="initiative-list" id="initiativeList"></div>
+            <div class="quick-actions">
+                <button class="quick-btn primary" onclick="nextTurn()">Next Turn</button>
+                <button class="quick-btn danger" onclick="endCombat()">End Combat</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/models/core.js"></script>
+    <script>
+        // Global state
+        let allCharacters = new Map();
+        let currentCombat = null;
+        let commandHistory = [];
+        
+        // Set up event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSampleCharacters();
+            updateDisplay();
+            
+            // Add enter key handler
+            document.getElementById('commandInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    processCommand();
+                }
+            });
+        });
+        
+        // Sample characters for demo
+        function initializeSampleCharacters() {
+            const gandalf = new Character({
+                name: "Gandalf",
+                type: "pc",
+                hp: 38,
+                ac: 15
+            });
+            
+            const legolas = new Character({
+                name: "Legolas", 
+                type: "pc",
+                hp: 45,
+                ac: 16
+            });
+            
+            // Add some consumables
+            gandalf.addConsumable(new Consumable({
+                name: "Spell Slots",
+                charges: 3,
+                resetCondition: "long_rest"
+            }));
+            
+            legolas.addConsumable(new Consumable({
+                name: "Hunter's Mark",
+                charges: 1,
+                resetCondition: "long_rest"
+            }));
+            
+            allCharacters.set("gandalf", gandalf);
+            allCharacters.set("legolas", legolas);
+        }
+        
+        // Natural Language Processing (simplified)
+        function processCommand() {
+            const input = document.getElementById('commandInput');
+            const command = input.value.trim().toLowerCase();
+            
+            if (!command) return;
+            
+            addToHistory(`> ${command}`);
+            input.value = '';
+            
+            try {
+                if (command.includes('start combat')) {
+                    handleStartCombat(command);
+                } else if (command.includes('takes') && command.includes('damage')) {
+                    handleDamage(command);
+                } else if (command.includes('heals') || (command.includes('gains') && command.includes('hp'))) {
+                    handleHealing(command);
+                } else if (command.includes('long rest')) {
+                    handleLongRest();
+                } else if (command.includes('short rest')) {
+                    handleShortRest();
+                } else if (command.includes('add condition')) {
+                    handleAddCondition(command);
+                } else if (command.includes('remove condition')) {
+                    handleRemoveCondition(command);
+                } else if (command.includes('next turn')) {
+                    nextTurn();
+                } else if (command.includes('end combat')) {
+                    endCombat();
+                } else {
+                    addToHistory('❌ Command not recognized. Try: "start combat", "gandalf takes 5 damage", "trigger long rest"');
+                }
+            } catch (error) {
+                addToHistory(`❌ Error: ${error.message}`);
+            }
+            
+            updateDisplay();
+        }
+        
+        function handleStartCombat(command) {
+            currentCombat = new Combat();
+            
+            // Extract character names and create enemies if needed
+            const words = command.split(' ');
+            let foundCharacters = [];
+            
+            // Look for known character names
+            for (let [name, character] of allCharacters) {
+                if (command.includes(name)) {
+                    foundCharacters.push(character);
+                }
+            }
+            
+            // Look for enemy creation (e.g., "2 orcs", "goblin")
+            const enemyPatterns = [
+                /(\d+)\s+(\w+)/g,  // "2 orcs"
+                /\b(orc|goblin|dragon|skeleton|zombie)\b/g  // single enemies
+            ];
+            
+            enemyPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(command)) !== null) {
+                    if (match[1] && !isNaN(match[1])) {
+                        // Multiple enemies: "2 orcs"
+                        const count = parseInt(match[1]);
+                        const type = match[2];
+                        for (let i = 1; i <= count; i++) {
+                            const enemy = new Character({
+                                name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${i}`,
+                                type: "enemy",
+                                hp: 15,
+                                ac: 13
+                            });
+                            foundCharacters.push(enemy);
+                        }
+                    } else {
+                        // Single enemy
+                        const type = match[0];
+                        const enemy = new Character({
+                            name: type.charAt(0).toUpperCase() + type.slice(1),
+                            type: "enemy", 
+                            hp: 15,
+                            ac: 13
+                        });
+                        foundCharacters.push(enemy);
+                    }
+                }
+            });
+            
+            // Add to combat with random initiatives
+            foundCharacters.forEach(character => {
+                const initiative = Math.floor(Math.random() * 20) + 1;
+                currentCombat.addCharacter(character, initiative);
+            });
+            
+            if (foundCharacters.length > 0) {
+                currentCombat.startCombat();
+                addToHistory(`✅ Combat started with ${foundCharacters.length} participants`);
+            } else {
+                addToHistory('❌ No characters found. Try mentioning character names or enemies like "orc" or "goblin"');
+            }
+        }
+        
+        function handleDamage(command) {
+            const damageMatch = command.match(/(\w+)\s+takes?\s+(\d+)\s+damage/);
+            if (!damageMatch) {
+                addToHistory('❌ Could not parse damage command. Try: "gandalf takes 5 damage"');
+                return;
+            }
+            
+            const characterName = damageMatch[1];
+            const damage = parseInt(damageMatch[2]);
+            
+            const character = findCharacter(characterName);
+            if (character) {
+                const oldHp = character.hp ? character.hp.current : 0;
+                character.takeDamage(damage);
+                const newHp = character.hp ? character.hp.current : 0;
+                addToHistory(`✅ ${character.name} takes ${damage} damage (${oldHp} → ${newHp} HP)`);
+            } else {
+                addToHistory(`❌ Character "${characterName}" not found`);
+            }
+        }
+        
+        function handleHealing(command) {
+            const healMatch = command.match(/(\w+)\s+(?:heals|gains)\s+(\d+)\s+(?:hp|health)/);
+            if (!healMatch) {
+                addToHistory('❌ Could not parse healing command. Try: "gandalf heals 5 hp"');
+                return;
+            }
+            
+            const characterName = healMatch[1];
+            const healing = parseInt(healMatch[2]);
+            
+            const character = findCharacter(characterName);
+            if (character) {
+                const oldHp = character.hp ? character.hp.current : 0;
+                character.heal(healing);
+                const newHp = character.hp ? character.hp.current : 0;
+                addToHistory(`✅ ${character.name} heals ${healing} HP (${oldHp} → ${newHp} HP)`);
+            } else {
+                addToHistory(`❌ Character "${characterName}" not found`);
+            }
+        }
+        
+        function handleLongRest() {
+            const characters = Array.from(allCharacters.values());
+            if (currentCombat) {
+                characters.push(...currentCombat.participants.map(p => p.character));
+            }
+            
+            triggerRest(characters, 'long_rest');
+            addToHistory('✅ Long rest completed - all long rest resources recovered');
+        }
+        
+        function handleShortRest() {
+            const characters = Array.from(allCharacters.values());
+            if (currentCombat) {
+                characters.push(...currentCombat.participants.map(p => p.character));
+            }
+            
+            triggerRest(characters, 'short_rest');
+            addToHistory('✅ Short rest completed - short rest resources recovered');
+        }
+        
+        function handleAddCondition(command) {
+            const conditionMatch = command.match(/add condition (\w+) to (\w+)/);
+            if (!conditionMatch) {
+                addToHistory('❌ Try: "add condition poisoned to gandalf"');
+                return;
+            }
+            
+            const condition = conditionMatch[1];
+            const characterName = conditionMatch[2];
+            const character = findCharacter(characterName);
+            
+            if (character) {
+                character.addCondition(condition);
+                addToHistory(`✅ Added condition "${condition}" to ${character.name}`);
+            } else {
+                addToHistory(`❌ Character "${characterName}" not found`);
+            }
+        }
+        
+        function handleRemoveCondition(command) {
+            const conditionMatch = command.match(/remove condition (\w+) from (\w+)/);
+            if (!conditionMatch) {
+                addToHistory('❌ Try: "remove condition poisoned from gandalf"');
+                return;
+            }
+            
+            const condition = conditionMatch[1];
+            const characterName = conditionMatch[2];
+            const character = findCharacter(characterName);
+            
+            if (character) {
+                character.removeCondition(condition);
+                addToHistory(`✅ Removed condition "${condition}" from ${character.name}`);
+            } else {
+                addToHistory(`❌ Character "${characterName}" not found`);
+            }
+        }
+        
+        function findCharacter(name) {
+            // Check known characters first
+            const known = allCharacters.get(name.toLowerCase());
+            if (known) return known;
+            
+            // Check combat participants
+            if (currentCombat) {
+                const combatant = currentCombat.participants.find(p => 
+                    p.character.name.toLowerCase().includes(name.toLowerCase())
+                );
+                if (combatant) return combatant.character;
+            }
+            
+            return null;
+        }
+        
+        function nextTurn() {
+            if (!currentCombat || !currentCombat.isActive) {
+                addToHistory('❌ No active combat');
+                return;
+            }
+            
+            currentCombat.nextTurn();
+            const current = currentCombat.getCurrentCharacter();
+            addToHistory(`✅ Next turn - Round ${currentCombat.currentRound}, ${current ? current.name : 'Unknown'}'s turn`);
+            updateDisplay();
+        }
+        
+        function endCombat() {
+            if (!currentCombat) {
+                addToHistory('❌ No combat to end');
+                return;
+            }
+            
+            currentCombat.endCombat();
+            addToHistory('✅ Combat ended');
+            updateDisplay();
+        }
+        
+        function addToHistory(message) {
+            commandHistory.push(message);
+            const historyDiv = document.getElementById('commandHistory');
+            historyDiv.innerHTML = commandHistory.slice(-10).join('\n');
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+        }
+        
+        function clearHistory() {
+            commandHistory = [];
+            document.getElementById('commandHistory').innerHTML = '';
+        }
+        
+        function updateDisplay() {
+            updateCombatStatus();
+            updateCharacterCards();
+            updateInitiativeOrder();
+        }
+        
+        function updateCombatStatus() {
+            const statusDiv = document.getElementById('combatStatus');
+            if (currentCombat && currentCombat.isActive) {
+                statusDiv.textContent = `Combat Active - Round ${currentCombat.currentRound}`;
+                statusDiv.className = 'combat-status active';
+            } else {
+                statusDiv.textContent = 'No combat active';
+                statusDiv.className = 'combat-status';
+            }
+        }
+        
+        function updateCharacterCards() {
+            const cardsContainer = document.getElementById('characterCards');
+            cardsContainer.innerHTML = '';
+            
+            let characters = [];
+            
+            // Add known characters
+            characters.push(...Array.from(allCharacters.values()));
+            
+            // Add combat participants
+            if (currentCombat) {
+                currentCombat.participants.forEach(p => {
+                    if (!characters.includes(p.character)) {
+                        characters.push(p.character);
+                    }
+                });
+            }
+            
+            characters.forEach(character => {
+                const card = createCharacterCard(character);
+                cardsContainer.appendChild(card);
+            });
+        }
+        
+        function createCharacterCard(character) {
+            const card = document.createElement('div');
+            card.className = `character-card ${character.type}`;
+            
+            // Check if it's current turn
+            if (currentCombat && currentCombat.isActive) {
+                const current = currentCombat.getCurrentCharacter();
+                if (current && current.id === character.id) {
+                    card.classList.add('current-turn');
+                }
+            }
+            
+            // Check if character is down
+            if (character.isDown()) {
+                card.classList.add('down');
+            }
+            
+            // Get initiative if in combat
+            let initiative = null;
+            if (currentCombat) {
+                const participant = currentCombat.participants.find(p => p.character.id === character.id);
+                if (participant) {
+                    initiative = participant.initiative;
+                }
+            }
+            
+            card.innerHTML = `
+                ${initiative !== null ? `<div class="initiative-badge">${initiative}</div>` : ''}
+                <div class="card-header">
+                    <div class="character-name">${character.name}</div>
+                    <div class="character-type">${character.type}</div>
+                </div>
+                
+                ${character.hp ? `
+                    <div class="stat-row">
+                        <span>HP:</span>
+                        <span>${character.hp.current}/${character.hp.max}</span>
+                    </div>
+                    <div class="hp-bar">
+                        <div class="hp-fill ${getHpClass(character)}" style="width: ${(character.hp.current / character.hp.max) * 100}%"></div>
+                    </div>
+                ` : ''}
+                
+                ${character.ac ? `
+                    <div class="stat-row">
+                        <span>AC:</span>
+                        <span>${character.ac}</span>
+                    </div>
+                ` : ''}
+                
+                ${character.conditions.length > 0 ? `
+                    <div class="conditions">
+                        <strong>Conditions:</strong><br>
+                        ${character.conditions.map(c => `<span class="condition-tag">${c}</span>`).join('')}
+                    </div>
+                ` : ''}
+                
+                ${character.consumables.length > 0 ? `
+                    <div class="consumables">
+                        <strong>Resources:</strong><br>
+                        ${character.getConsumablesDisplay().map(c => `<span class="consumable-item">${c}</span>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            return card;
+        }
+        
+        function getHpClass(character) {
+            if (!character.hp) return '';
+            const percentage = (character.hp.current / character.hp.max) * 100;
+            if (percentage <= 25) return 'critical';
+            if (percentage <= 50) return 'low';
+            return '';
+        }
+        
+        function updateInitiativeOrder() {
+            const orderDiv = document.getElementById('initiativeOrder');
+            const listDiv = document.getElementById('initiativeList');
+            
+            if (!currentCombat || !currentCombat.isActive) {
+                orderDiv.style.display = 'none';
+                return;
+            }
+            
+            orderDiv.style.display = 'block';
+            listDiv.innerHTML = '';
+            
+            currentCombat.participants.forEach((participant, index) => {
+                const item = document.createElement('div');
+                item.className = `initiative-item ${participant.character.type}`;
+                
+                if (index === currentCombat.currentTurnIndex) {
+                    item.classList.add('current');
+                }
+                
+                item.innerHTML = `
+                    <strong>${participant.initiative}</strong> - ${participant.character.name}
+                `;
+                
+                listDiv.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>
